@@ -1,0 +1,57 @@
+---
+title: "BQ Patent Exploration"
+output: github_document
+---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = TRUE
+)
+```
+
+## About
+
+Google Patents Public Datasets is a collection BigQuery database tables from government, research and private companies for conducting statistical analysis of patent data.
+
+https://cloud.google.com/blog/products/gcp/google-patents-public-datasets-connecting-public-paid-and-private-patent-data
+
+This notebook provides an overview about the structure of the BigQuery datatable. A particular focus is on accessing non-patent literature (NPL).
+
+## Connect to Google Patents Public Datasets
+
+```{r}
+library(tidyverse)
+library(DBI)
+library(bigrquery)
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "api-project-764811344545"
+)
+```
+
+Alternatively, you can also use the Google BigQuery web GUI to query the data. <https://console.cloud.google.com/bigquery?project=api-project-764811344545&p=patents-public-data&d=patents&t=publications_201912&page=table>
+
+
+## Patents with citing non-patent literature
+
+```{sql, connection = con}
+SELECT e.country_code, COUNT(DISTINCT(e.publication_number)) as n_patents
+FROM `patents-public-data.patents.publications_201912` as e, UNNEST(citation) as d
+WHERE d.npl_text != ''
+GROUP BY e.country_code
+ORDER BY n_patents desc
+```
+
+### Sample Patents
+
+```{sql, connection = con}
+SELECT e.country_code, e.publication_number, d.npl_text
+FROM `patents-public-data.patents.publications_201912` as e, UNNEST(citation) as d
+WHERE d.npl_text like '%doi%' and country_code = 'EP'
+LIMIT 10
+```
+
