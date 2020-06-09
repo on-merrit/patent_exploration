@@ -21,7 +21,7 @@ library(DBI)
 library(bigrquery)
 con <- dbConnect(
   bigrquery::bigquery(),
-  project = "api-project-764811344545"
+  project = "cogent-tangent-279810"
 )
 ```
 
@@ -39,6 +39,8 @@ GROUP BY e.country_code
 ORDER BY n_patents desc
 ```
 
+<div class="knitsql-table">
+
 | country\_code | n\_patents |
 | :------------ | ---------: |
 | US            |    3711779 |
@@ -54,6 +56,8 @@ ORDER BY n_patents desc
 
 Displaying records 1 - 10
 
+</div>
+
 ### Sample Patents
 
 ``` sql
@@ -63,17 +67,37 @@ WHERE d.npl_text like '%doi%' and country_code = 'EP'
 LIMIT 10
 ```
 
-| country\_code | publication\_number | npl\_text                                                                                                                                                                                                                                                                                                                    |
-| :------------ | :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EP            | EP-1385526-B1       | T. MARUYAMA ET AL.: “Design and synthesis of a selective EP4-receptor agonist. Part 1: Discovery of 3,7-dithiaPGE1 derivatives and identification of their omega chains.”, BIOORGANIC & MEDICINAL CHEMISTRY, vol. 10, no. 4, April 2002 (2002-04-01), pages 975 - 988, XP002323894, DOI: <doi:10.1016/S0968-0896(01)00351-0> |
-| EP            | EP-1498484-B1       | TSUYA ET AL: “Cloning and functional expression of glucose dehydrogenase complex of Burkholderia cepacia in Escherichia coli”, J. BIOTECH., vol. 123, 2006, pages 127 - 136, XP024956798, DOI: <doi:10.1016/j.jbiotec.2005.10.017>                                                                                           |
-| EP            | EP-0793504-B1       | RABINOVITCH A.: “Immunoregulatory and cytokine imbalances in the pathogenesis of IDDM; therapeutic intervention by immunostimulation ?”, DIABETES, vol. 43, May 1994 (1994-05-01), pages 613 - 621, XP001036572, DOI: <doi:10.2337/diabetes.43.5.613>                                                                        |
-| EP            | EP-1287155-B2       | LUTJE SPELBERG J.H. ET AL: “Enzymatic dynamic kinetic resolution if epihalohydrins”, TETRAHEDRON: ASYMMETRY, vol. 15, 1 January 2004 (2004-01-01), pages 1095 - 1102, XP004499059, DOI: <doi:10.1016/j.tetasy.2004.02.009>                                                                                                   |
-| EP            | EP-1287155-B2       | LUTJE SPELBERG J.H. ET AL: “Highly enantioselevtive and regioselective biocatalytic azidolysis of aromatic epoxides”, ORGANIC LETTERS, vol. 3, no. 1, 1 January 2001 (2001-01-01), pages 41 - 43, XP055063057, DOI: <doi:10.1021/ol0067540>                                                                                  |
-| EP            | EP-1287155-B2       | VAN HYLCKAMA J.E.T. ET AL: “Halohydrin dehalogenases are structurally and mechanistically related to short-chain dehydrogenases/reductases”, JOURNAL OF BACTERIOLOGY, vol. 183, 1 September 2001 (2001-09-01), pages 5058 - 5066, XP002305277, DOI: <doi:10.1128/JB.183.17.5058-5066.2001>                                   |
-| EP            | EP-1524711-B2       | SHUKLA A.K. ET AL: “An XPS study on binary and ternary alloys of transition metals with platinized carbon and its bearing upon oxygen electroreduction in direct methanol fuel cells”, JOURNAL OF ELECTROANALYTICAL CHEMISTRY, vol. 504, 2001, pages 111 - 119, XP002326973, DOI: <doi:10.1016/S0022-0728(01)00421-1>        |
-| EP            | EP-1524711-B2       | UNGÁR T. ET AL: “Microstructure of carbon blacks determined by X-ray diffraction profile analysis”, CARBON, vol. 40, 2002, pages 929 - 937, XP004346748, DOI: <doi:10.1016/S0008-6223(01)00224-X>                                                                                                                            |
-| EP            | EP-1524711-B2       | WATANABE M. ET AL: “Activity and stability of ordered and disordered Co-Pt alloys for phosphoric acid fuel cells”, JOURNAL ELECTROCHEMICAL SOCIETY, vol. 141, no. 10, October 1994 (1994-10-01), pages 2659 - 2668, XP055233516, DOI: <doi:10.1149/1.2059162>                                                                |
-| EP            | EP-0849595-A1       | ARSHADY: “Suspension, emulsion and dispersion polymerization: A Methodological Survey”, COLLOID & POLYMER SCIENCE, vol. 270, 1992, pages 717 - 732, XP002682310, DOI: <doi:10.1007/BF00776142>                                                                                                                               |
+<div class="knitsql-table">
+
+| country\_code | publication\_number | npl\_text                                                                                                                                                                                                                                                                                                                                                                                             |
+| :------------ | :------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EP            | EP-2451466-B1       | HOSPATTANKAR ET AL: “Amino acid sequence of human plasma apolipoprotein C-III from normalipidemic subjects”, FEBS LETTERS, vol. 197, no. 1-2, 3 March 1986 (1986-03-03), pages 67 - 73, XP025605875, DOI: <doi:10.1016/0014-5793(86)80300-3>                                                                                                                                                          |
+| EP            | EP-1991931-A4       | CHENEY J: “An Empirical Evaluation of Simple DTD-Conscious Compression Techniques”, PROCEEDINGS OF THE EIGHTH INTERNATIONAL WORKSHOP ON THE WEB AND DATABASES, 16 June 2005 (2005-06-16) - 17 June 2005 (2005-06-17), Baltimore, USA, XP002612062, Retrieved from the Internet \<URL:<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.62.9799&rep=rep1&type=pdf>\> \[retrieved on 20101130\] |
+| EP            | EP-2754067-A4       | J. PLATE ET AL: “Occlusion Culling for Sub- Surface Models in Geo-Scientific Applications”, 1 January 2004 (2004-01-01), pages 1 - 6, XP055064053, Retrieved from the Internet \<URL:<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.84.8042&rep=rep1&type=pdf>\> \[retrieved on 20130524\]                                                                                                 |
+| EP            | EP-3494875-A1       | JEON ET AL.: “Bioinspired, Highly Stretchable, and Conductive Dry Adhesives Based on 1D/2D Hybrid Carbon Nanocomposites for All-in-One ECG Electrodes”, ACS NANO, vol. 10, 2016, pages 4770 - 4778, XP055356523, DOI: <doi:10.1021/acsnano.6b01355>                                                                                                                                                   |
+| EP            | EP-2215824-A4       | FRANCISCO H. IMAI, ROY S. BERNS: “High-Resolution Multi-Spectral Image Archives: A Hybrid Approach”, November 1998 (1998-11-01), XP002599917, Retrieved from the Internet \<URL:<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.75.211&rep=rep1&type=pdf>\> \[retrieved on 20100909\]                                                                                                       |
+| EP            | EP-2215824-A4       | YONGHUI ZHAO, ROY S. BERNS: “Image-Based Spectral Reflectance Reconstruction Using the Matrix R Method”, vol. 32, no. 5, 20 August 2007 (2007-08-20), pages 343 - 351, XP002599916, Retrieved from the Internet \<URL:<http://onlinelibrary.wiley.com/doi/10.1002/col.20341/pdf>\> \[retrieved on 20100909\], DOI: 10.1002/col.20341                                                                  |
+| EP            | EP-2275974-A2       | ZHENG ET AL.: “Machine Printed Text And Handwriting Identification In Noisy Document Images”, IEEE TRANS. PATTERN ANAL. MACH. INTELL., vol. 26, no. 3, 2004, pages 337 - 353, XP011106116, DOI: <doi:10.1109/TPAMI.2004.1262324>                                                                                                                                                                      |
+| EP            | EP-2624462-A1       | MOSELY ET AL.: “A two-stage approach to harmonic rejection mixing using blind interference cancellation”, IEEE TRANSACTIONS ON CIRCUITS AND SYSTEMS II: EXPRESS BRIEFS, vol. 55, no. 10, October 2008 (2008-10-01), pages 966 - 970, XP011236580, DOI: <doi:10.1109/TCSII.2008.926796>                                                                                                                |
+| EP            | EP-2100253-A4       | J. KITTLER ET AL.: “BIOSECURE BIOMETRICS FOR SECURE AUTHENTICATION”, 14 June 2005 (2005-06-14), pages 1 - 22, XP002612104, Retrieved from the Internet \<URL:<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.109.6725&rep=rep1&type=pdf>\> \[retrieved on 20101129\]                                                                                                                        |
+| EP            | EP-2817135-A4       | “Supporting Information: Nanostructure-Dependent Water-Droplet Adhesiveness Change in Superhydrophobic Anodic Aluminum Oxide Surfaces: From Highly Adhesive to Self-Cleanable”, 29 December 2009 (2009-12-29), XP055211428, Retrieved from the Internet \<URL:<http://pubs.acs.org/doi/suppl/10.1021/la904095x/suppl_file/la904095x_si_001.pdf>\> \[retrieved on 20150904\]                           |
 
 Displaying records 1 - 10
+
+</div>
+
+``` sql
+SELECT e.country_code, e.publication_number, d.npl_text
+FROM `patents-public-data.patents.publications_201912` as e, UNNEST(citation) as d
+WHERE e.application_number= 'US7527788'
+LIMIT 10
+```
+
+<div class="knitsql-table">
+
+| country\_code | publication\_number | npl\_text |
+| :------------ | :------------------ | :-------- |
+
+0 records
+
+</div>

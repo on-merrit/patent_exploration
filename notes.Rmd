@@ -29,7 +29,7 @@ library(DBI)
 library(bigrquery)
 con <- dbConnect(
   bigrquery::bigquery(),
-  project = "api-project-764811344545"
+  project = "cogent-tangent-279810"
 )
 ```
 
@@ -55,3 +55,10 @@ WHERE d.npl_text like '%doi%' and country_code = 'EP'
 LIMIT 10
 ```
 
+
+```{sql, connection = con}
+SELECT e.country_code, e.publication_number, d.npl_text
+FROM `patents-public-data.patents.publications_201912` as e, UNNEST(citation) as d
+WHERE e.application_number= 'US7527788'
+LIMIT 10
+```
