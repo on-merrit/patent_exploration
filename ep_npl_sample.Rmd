@@ -34,7 +34,7 @@ SELECT
         meta.country_code,
         cite.type,
         cite.npl_text,
-        rand() 
+        rand() as rand
     FROM
         `patents-public-data.patents.publications_201912` AS meta,
         UNNEST(citation) AS cite 
@@ -49,3 +49,8 @@ SELECT
 ```
 
 ### Backup
+
+```{r}
+rand_npl
+write_csv(rand_npl, "data/rand_npl.csv")
+```
