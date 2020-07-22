@@ -1,0 +1,51 @@
+---
+title: "BQ Patent Exploration"
+output: github_document
+---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = TRUE
+)
+```
+
+### Connect to BQ
+```{r}
+library(tidyverse)
+library(DBI)
+library(bigrquery)
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "cogent-tangent-279810"
+)
+```
+
+### Query
+
+Get a sample of 10,000 non-paten literature citation from patents provided by the European Patent Office since 2015.
+
+```{sql, connection = con, output.var="rand_npl"}
+SELECT
+        meta.publication_number,
+        meta.country_code,
+        cite.type,
+        cite.npl_text,
+        rand() 
+    FROM
+        `patents-public-data.patents.publications_201912` AS meta,
+        UNNEST(citation) AS cite 
+    WHERE
+        meta.country_code in (
+            "EP"
+        )  
+        AND meta.publication_date > 20150101  
+        AND cite.npl_text != '' 
+        AND NOT REGEXP_CONTAINS(cite.npl_text, "^See|None") 
+        AND NOT cite.npl_text = "No further relevant documents disclosed" LIMIT 10000
+```
+
+### Backup
