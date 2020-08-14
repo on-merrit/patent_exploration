@@ -1,7 +1,6 @@
 library(tidyverse)
 library(stringr)
 
-readr::guess_encoding("data/rand_npl.csv")
 df <- read_csv("data/rand_npl.csv")
 
 df %>%
