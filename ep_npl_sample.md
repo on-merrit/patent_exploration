@@ -35,26 +35,28 @@ SELECT
         AND meta.publication_date > 20150101  
         AND cite.npl_text != '' 
         AND NOT REGEXP_CONTAINS(cite.npl_text, "^See|None") 
-        AND NOT cite.npl_text = "No further relevant documents disclosed" LIMIT 10000
+        AND NOT cite.npl_text = "No further relevant documents disclosed" 
+        AND rand() < 0.01
+    ORDER BY rand LIMIT 10000
 ```
 
 ### Backup
 
 ``` r
 rand_npl
-#> # A tibble: 10,000 x 5
-#>    publication_numb… country_code type  npl_text                         rand
-#>    <chr>             <chr>        <chr> <chr>                           <dbl>
-#>  1 EP-1482288-B1     EP           ""    "HILARY E SNELL ET AL: \"Fouri… 0.964
-#>  2 EP-3134253-A4     EP           "XPI" "ROBERT MACCURDY ET AL: \"Hybr… 0.102
-#>  3 EP-1811026-B1     EP           ""    "Technical Bulletin; pCI and p… 0.977
-#>  4 EP-1901235-B1     EP           ""    "VERGEEST J ET AL: \"Free-form… 0.203
-#>  5 EP-2097241-B1     EP           ""    "BAETEN F ET AL: \"Barium tita… 0.497
-#>  6 EP-2280048-B1     EP           ""    "ULRICH JAHN: \"Decandisäure\"… 0.267
-#>  7 EP-2304028-B1     EP           ""    "BREVNOV MAXIM G ET AL: \"Deve… 0.223
-#>  8 EP-2310520-B1     EP           ""    "BING FENG ET AL: \"Purificati… 0.237
-#>  9 EP-2334021-B1     EP           ""    "CARLOS MOSQUERA ET AL: \"Non-… 0.658
-#> 10 EP-2737071-B1     EP           ""    "GALIBERT L ET AL: \"Baculovir… 0.961
-#> # … with 9,990 more rows
+#> # A tibble: 9,485 x 5
+#>    publication_numb~ country_code type  npl_text                                      rand
+#>    <chr>             <chr>        <chr> <chr>                                        <dbl>
+#>  1 EP-2940443-A1     EP           "A"   "YUN ZHAO ET AL: \"A simulation and exper~ 2.46e-5
+#>  2 EP-2823812-A1     EP           ""    "SCHMIDT ET AL., DIABETOLOGIA, vol. 28, 1~ 1.06e-4
+#>  3 EP-3064509-A2     EP           ""    "BOERNER ET AL., J. IMMUNOL., vol. 147, n~ 2.19e-4
+#>  4 EP-3327027-A1     EP           ""    "KABAT E ET AL., J. IMMUNOLOGY, vol. 125,~ 2.78e-4
+#>  5 EP-2885006-B1     EP           ""    "HO GUOJIE ET AL: \"Detection and quantif~ 4.31e-4
+#>  6 EP-3207944-A1     EP           ""    "KIRPOTIN ET AL., FEBS LETTERS, vol. 388,~ 6.92e-4
+#>  7 EP-3281947-A1     EP           ""    "VAUGHAN ET AL., NAT. BIOTECH., vol. 16, ~ 7.87e-4
+#>  8 EP-3351992-A1     EP           "Y"   "H-J JORDAN ET AL: \"Highly accurate non-~ 8.35e-4
+#>  9 EP-2866000-A1     EP           "X"   "GINO PUTRINO ET AL: \"Integrated Resonan~ 1.01e-3
+#> 10 EP-2949337-A3     EP           "XY"  "ZVI ANAT ET AL: \"Whole genome identific~ 1.09e-3
+#> # ... with 9,475 more rows
 write_csv(rand_npl, "data/rand_npl.csv")
 ```
