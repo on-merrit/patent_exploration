@@ -45,7 +45,9 @@ SELECT
         AND meta.publication_date > 20150101  
         AND cite.npl_text != '' 
         AND NOT REGEXP_CONTAINS(cite.npl_text, "^See|None") 
-        AND NOT cite.npl_text = "No further relevant documents disclosed" LIMIT 10000
+        AND NOT cite.npl_text = "No further relevant documents disclosed" 
+        AND rand() < 0.01
+    ORDER BY rand LIMIT 10000
 ```
 
 ### Backup
