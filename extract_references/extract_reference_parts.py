@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 # import data
 patents = pd.read_csv("../data/rand_npl.csv",
@@ -38,11 +39,46 @@ patents_clean['url'] = extract_part('<URL:(.*?)>')
 
 patents_clean['journal_title'] = extract_part(',\s([A-Z\W]+?),')
 
+# the following pattern seems to be quite common, but the current regexes
+# fail to extract authors, journal, and year:
+# "SHIELDS ET AL., J BIOL. CHEM., vol. 9, no. 2, 2001, pages 6591 - 6604"
+
+# approach: find those cases, and apply a different extraction algorithm to them
+# for this case
+# new_case = r'^[A-Z\.,\s;\'-]+vol.+,\s?pages'
+# this approach is to specific. It seems that having no colon is a better
+# approximation
+new_case = r'^[^:\"]+vol.+,\s?pages'
+patents_clean['short_cases'] = patents_clean['npl_text'].str.match(new_case)
+# find authors etc.
+
+# using apply: https://stackoverflow.com/a/18194448/3149349
+def extract_new_case(row, search_str, column):
+    if row['short_cases']:
+        extractions = re.search(search_str, row['npl_text'])
+        if extractions is not None:
+            return extractions.group(1)
+        else:
+            return None
+    elif column is None:
+        return None
+    else:
+        return row[column]
+
+patents_clean['authors'] = patents_clean. \
+    apply(extract_new_case, axis = 1, search_str = r'^(.+?),',
+          column = 'authors')
+
+# this is too specific (the dot before the comma) and does not catch everything
+patents_clean['journal_title'] = patents_clean. \
+    apply(extract_new_case, axis = 1, search_str = r'^.+?\.,(.+?),',
+          column = 'journal_title')
+
+patents_clean['volume'] = patents_clean. \
+    apply(extract_new_case, axis = 1, search_str = r'vol\.\s(\d+)',
+          column = None)
+
 
 patents_clean.to_csv("processed_data/extracted_references.csv",
                      encoding='utf-8', index=False)
 
-# still todo:
-# the following pattern seems to be quite common, but the current regexes
-# fail to extract authors, journal, and year:
-# "SHIELDS ET AL., J BIOL. CHEM., vol. 9, no. 2, 2001, pages 6591 - 6604"
