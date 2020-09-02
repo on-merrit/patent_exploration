@@ -12,5 +12,10 @@ df_clean %>%
   mutate(authors = str_extract(npl_text, ".*(?=:)"),
          test = str_extract(npl_text, ".*:"))
 
-
-
+# this is a quick helper to get the data into a format so it can be pasted
+# to regex101 for regex development
+df %>%
+  select(npl_text) %>%
+  slice_sample(n = 30) %>%
+  write.table(file = "data/sample_text.txt", sep = ",",
+              row.names = FALSE, quote = FALSE)
