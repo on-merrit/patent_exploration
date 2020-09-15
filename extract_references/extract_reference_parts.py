@@ -70,9 +70,27 @@ patents_clean['authors'] = patents_clean. \
           column = 'authors')
 
 # this is too specific (the dot before the comma) and does not catch everything
+# but it is a good first step
 patents_clean['journal_title'] = patents_clean. \
     apply(extract_new_case, axis = 1, search_str = r'^.+?\.,(.+?),',
           column = 'journal_title')
+# extract the remaining journal titles in a second step
+def extract_journal_title2(row, search_str, column):
+    if row['short_cases']:
+        if row[column] and re.search(r'([A-Z])', row[column]):
+            return row[column]
+        else:
+            extractions = re.search(search_str, row['npl_text'])
+            if extractions is not None:
+                return extractions.group(1)
+            else:
+                return None
+    else:
+        return row[column]
+
+patents_clean['journal_title'] = patents_clean. \
+    apply(extract_journal_title2, axis=1, search_str=r'^.+?,(.+?),',
+              column='journal_title')
 
 patents_clean['volume'] = patents_clean. \
     apply(extract_new_case, axis = 1, search_str = r'vol\.\s(\d+)',
