@@ -1,0 +1,49 @@
+---
+title: "Quantify extraction success"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = TRUE
+)
+```
+
+
+```{r}
+library(tidyverse)
+
+df <- read_csv("processed_data/extracted_references.csv")
+
+```
+
+There are two sets of references here: one including rich information 
+(authors, article title, journal title, year, doi, issn, etc.) and one with
+sparse data (abbreviated authors, abbreviated journal, volume, issue, year).
+
+I have tried to separate them (the var short_cases denotes those with sparse
+data), obviously not completely successfully.
+
+Evaluation will take place within those subsamples.
+
+# Sparse cases
+In this group we have `r nrow(filter(df, short_cases))` cases.
+```{r}
+df %>% 
+  filter(short_cases) %>% 
+  select(authors, journal_title, volume, number, year) %>% 
+  visdat::vis_miss()
+```
+
+# All other cases
+In this group we have `r nrow(filter(df, !short_cases))` cases.
+```{r}
+df %>% 
+  filter(!short_cases) %>% 
+  select(authors, title, doi, issn, url, year) %>% 
+  visdat::vis_miss()
+```
