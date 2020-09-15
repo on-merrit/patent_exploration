@@ -69,33 +69,52 @@ patents_clean['authors'] = patents_clean. \
     apply(extract_new_case, axis = 1, search_str = r'^(.+?),',
           column = 'authors')
 
-# this is too specific (the dot before the comma) and does not catch everything
-# but it is a good first step
+
 patents_clean['journal_title'] = patents_clean. \
-    apply(extract_new_case, axis = 1, search_str = r'^.+?\.,(.+?),',
+    apply(extract_new_case, axis = 1, search_str = r'^.+?,(.+?),\svol',
           column = 'journal_title')
-# extract the remaining journal titles in a second step
-def extract_journal_title2(row, search_str, column):
+# this does not work for cases where there are no authors
+# for those we could simply swap 'authors' with 'journal_title' if there is an
+# author but no journal
+def get_journal(row, column):
     if row['short_cases']:
-        if row[column] and re.search(r'([A-Z])', row[column]):
-            return row[column]
+        if row[column] is None:
+            return row['authors']
         else:
-            extractions = re.search(search_str, row['npl_text'])
-            if extractions is not None:
-                return extractions.group(1)
-            else:
-                return None
+            return row[column]
     else:
         return row[column]
 
 patents_clean['journal_title'] = patents_clean. \
-    apply(extract_journal_title2, axis=1, search_str=r'^.+?,(.+?),',
-              column='journal_title')
+    apply(get_journal, axis = 1, column = 'journal_title')
 
+# delete authors for swapped journal titles
+def delete_author(row, column):
+    if row['short_cases']:
+        if row[column] == row['journal_title']:
+            return None
+        else:
+            return row[column]
+    else:
+        return row[column]
+
+patents_clean['authors'] = patents_clean. \
+        apply(delete_author, axis=1, column='authors')
+
+# get volume
 patents_clean['volume'] = patents_clean. \
     apply(extract_new_case, axis = 1, search_str = r'vol\.\s(\d+)',
           column = None)
 
+# get issue number
+patents_clean['number'] = patents_clean. \
+    apply(extract_new_case, axis = 1, search_str = r'no\.\s(\d+)',
+          column = None)
+
+# get year
+patents_clean['year'] = patents_clean. \
+    apply(extract_new_case, axis = 1, search_str = r'(\d{4}).*?,\spages',
+          column = 'year')
 
 patents_clean.to_csv("processed_data/extracted_references.csv",
                      encoding='utf-8', index=False)
