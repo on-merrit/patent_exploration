@@ -1,0 +1,52 @@
+---
+output: github_document
+---
+
+### Call Big Query
+
+```{r}
+library(tidyverse)
+
+library(DBI)
+library(bigrquery)
+
+con <- DBI::dbConnect(
+  bigrquery::bigquery(),
+  project = "api-project-764811344545"
+)
+```
+
+### Unapywall match
+
+Hosted on UGOE Big Query. See here for more details: 
+<https://doi.org/10.18452/22728>
+
+Create table on Google Big Query
+
+```{sql, connection=con}
+CREATE TABLE tmp.patent_unpaywall_matched AS
+SELECT *
+FROM `api-project-764811344545.oadoi_full.upw_Feb21_08_21`  AS `TBL_LEFT`
+WHERE EXISTS (
+  SELECT 1 FROM `api-project-764811344545.tmp.patent_dois` AS `TBL_RIGHT`
+  WHERE (LOWER(`TBL_LEFT`.`doi`) = LOWER(`TBL_RIGHT`.`doi`))
+)
+```
+
+Fetch data
+
+```{sql connection=con, output.var="oa_patents"}
+SELECT * 
+FROM `api-project-764811344545.tmp.patent_unpaywall_matched`
+```
+
+```{r}
+oa_patents
+```
+
+Local backup
+
+```{r}
+library(jsonlite)
+jsonlite::stream_out(oa_patents, file("data/oa_patents.json"), verbose = FALSE)
+```
