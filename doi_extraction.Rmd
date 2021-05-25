@@ -16,8 +16,8 @@ knitr::opts_chunk$set(
 
 ```{r}
 library(tidyverse)
-library(biblids) # https://github.com/subugoe/biblids
 library(stringi)
+library(biblids) # https://github.com/subugoe/biblids
 ```
 
 ```{r}
@@ -45,7 +45,7 @@ npl_tidy <- bind_cols(npl_tt, npl_dois) %>%
   mutate(doi_cleaned = tolower(doi_cleaned))
 
 npl_tidy %>%
-  distinct(doi = doi_cleaned) %>%
+  distinct(doi_cleaned, .keep_all = TRUE) %>%
   write_csv("data/dois_to_be_checked.csv")
 ```
 
