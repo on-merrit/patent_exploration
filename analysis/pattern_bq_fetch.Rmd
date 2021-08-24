@@ -46,7 +46,10 @@ github_repo
 #### PIDs
 
 ```{r}
-pids <- c("pmid", "pmcid", "doi", "rxiv")
+pids <- c("pmid",
+  "pmcid", 
+  #"doi", too large
+  "rxiv")
 ```
 
 ### Call Big Query
@@ -71,13 +74,15 @@ get_patents_with_repo <- function(repo_pattern) {
         e.publication_date,
         e.country_code,
         e.publication_number,
+        e.family_id,
         d.npl_text,
-        d.category 
+        d.category
     FROM
         `patents-public-data.patents.publications` as e,
-        UNNEST(citation) as d 
+        UNNEST(citation) as d
     WHERE
-        e.grant_date >= 20100101 
+        e.publication_date >= 20100101
+        AND e.application_kind = 'A'
         AND lower(d.npl_text) like {tolower(paste0('%', my_pattern, '%'))}
   ", .con = con)
   out <- DBI::dbGetQuery(con, req)
@@ -89,7 +94,10 @@ get_patents_with_repo <- function(repo_pattern) {
 Call 
 
 ```{r}
-my_patterns <- c(generic_repo, github_repo, pids)
+my_patterns <- c(
+  #generic_repo, 
+  github_repo, 
+  pids)
 npl_df <- purrr::map_df(my_patterns, get_patents_with_repo)
 ```
 
@@ -104,5 +112,5 @@ npl_df %>%
 Export
 
 ```{r}
-readr::write_csv(npl_df, here::here("data", "npl_pattern.csv"))
+readr::write_csv(npl_df, "../data/npl_pattern.csv")
 ````

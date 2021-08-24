@@ -26,10 +26,10 @@ Create table on Google Big Query
 ```{sql, connection=con}
 CREATE TABLE tmp.patent_unpaywall_matched AS
 SELECT *
-FROM `api-project-764811344545.oadoi_full.upw_Feb21_08_21`  AS `TBL_LEFT`
+FROM `api-project-764811344545.oadoi_full.upw_Jul21_08_21`  AS `TBL_LEFT`
 WHERE EXISTS (
   SELECT 1 FROM `api-project-764811344545.tmp.patent_dois` AS `TBL_RIGHT`
-  WHERE (LOWER(`TBL_LEFT`.`doi`) = LOWER(`TBL_RIGHT`.`doi`))
+  WHERE (LOWER(`TBL_LEFT`.`doi`) = LOWER(`TBL_RIGHT`.`doi_cleaned`))
 )
 ```
 
