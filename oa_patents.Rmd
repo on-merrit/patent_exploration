@@ -4,7 +4,7 @@ output: github_document
 
 ### Call Big Query
 
-```{r}
+```{r, message = FALSE}
 library(tidyverse)
 
 library(DBI)
