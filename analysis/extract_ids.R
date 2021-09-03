@@ -39,3 +39,40 @@ out <- purrr::map(pmids, purrr::safely(function(x) {
 }))
 epmc_df <- purrr::map_df(out, "result")
 readr::write_csv(epmc_df, "data/pmid_epmc_df.csv")
+# pmcid
+pmcid_raw <- npl_pattern %>%
+    filter(repo_pattern == "pmcid") %>%
+    mutate(pmcid_raw = str_extract(npl_text, "(PMCID: (\\d{5,7}))|(PMCID:(\\d{5,7}))|(PMCID (\\d{5,7}))|(PMC(\\d{5,7}))")) %>%
+    mutate(pmcid_cleaned = str_extract(pmcid_raw, "\\d{5,7}"))
+pmcids <- pmcid_raw %>%
+    filter(!is.na(pmcid_cleaned)) %>%
+    pull(pmcid_cleaned)
+
+pb <- progress_bar$new(total = length(pmcids),
+  format = "  downloading [:bar] :percent eta: :eta",
+)
+
+out <- purrr::map(pmcids, purrr::safely(function(x) {
+      pb$tick()
+      req <- suppressMessages(europepmc::epmc_search(paste0("PMCID:PMC", x))) %>%
+      mutate(pmcids = x)
+   req
+}))
+epmc__pmicid_df <- purrr::map_df(out, "result")
+
+epmc_pmicid <- pmcid_raw %>%
+    select(publication_number, pmcid_cleaned) %>%
+    inner_join(epmc__pmicid_df, by = c("pmcid_cleaned" = "pmcids")) %>%
+    mutate(source = "PMCID") %>%
+    distinct()
+# with pmid data
+pmid_df <- readr::read_csv("data/pmid_epmc_df.csv", col_types = cols(.default = "c")) %>%
+    mutate(citedByCount = as.integer(citedByCount))
+epmc_pmid_df <- pmid_raw %>%
+    select(publication_number, pmid_cleaned) %>%
+    select(publication_number, pmid_cleaned) %>%
+    inner_join(pmid_df, by = c("pmid_cleaned" = "pmids")) %>%
+    mutate(source = "PMID") %>%
+    distinct()
+epmc_df <- bind_rows(epmc_pmid_df, epmc_pmicid)
+write_csv(epmc_df, "data/epmc_pmid_pmc.csv")
