@@ -1,0 +1,215 @@
+---
+output: github_document
+---
+
+```{r, setup, echo=FALSE, message = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  echo = TRUE,
+  fig.width = 6,
+  fig.asp = 0.618,
+  out.width = "70%",
+  fig.align = "center",
+  dpi = 300
+)
+options(scipen = 999, digits = 4)
+knitr::knit_hooks$set(
+  inline = function(x) {
+    if (is.numeric(x)) {
+      return(prettyNum(x, big.mark = ","))
+    } else{
+      return(x)
+    }
+  }
+)
+library(tidyverse)
+library(jsonlite)
+```
+
+### Overview sources
+
+#### Unpaywall
+
+```{r}
+npl_df <- readr::read_csv("data/bq_doi_20210824.csv")
+dois <- readr::read_csv("data/dois_to_be_checked.csv")
+dois_df <- npl_df %>%
+  select(publication_number, family_id) %>%
+  left_join(dois, by = "publication_number") %>%
+  distinct()
+```
+
+Big query 
+
+```{r}
+length(unique(npl_df$family_id))
+length(unique(npl_df$npl_text))
+```
+
+```{r}
+# distinct dois
+dois %>% distinct(doi_cleaned)
+# family with sql doi match
+dois_df %>% 
+  summarise(n_distinct(family_id))
+# family with syntactially valid doi
+dois_df %>%
+  filter(!is.na(doi_cleaned)) %>%
+    summarise(n_distinct(family_id))
+# family with unpaywall match
+oa <- jsonlite::stream_in(file("data/oa_patents.json"))
+dois_df %>%
+  filter(!is.na(doi_cleaned)) %>%
+  mutate(doi_cleaned = tolower(doi_cleaned)) %>%
+  inner_join(oa, by = c("doi_cleaned" = "doi")) %>%
+    summarise(n_distinct(family_id))
+# distinct dois
+length(unique(oa$doi))
+```
+
+#### Europe PMC 
+
+```{r}
+epmc_df <- readr::read_csv("data/epmc_pmid_pmc.csv")
+npl_pattern <- readr::read_csv("data/npl_pattern.csv")
+
+```
+
+big query recall
+
+```{r}
+# patent families
+npl_pattern %>% 
+    filter(repo_pattern %in% c("pmid", "pmcid")) %>%
+    distinct(family_id)
+# npl
+npl_pattern %>% 
+    filter(repo_pattern %in% c("pmid", "pmcid")) %>%
+    distinct(npl_text) %>%
+    nrow()
+```
+
+pid extraction
+
+```{r}
+pmid_raw <- npl_pattern %>% 
+    filter(repo_pattern == "pmid") %>%
+    mutate(pmid_raw = str_extract(npl_text, "(PMID: (\\d{7,8}))|(PMID:(\\d{7,8}))|(PMID (\\d{7,8}))")) %>%
+    mutate(pmid_cleaned = str_extract(pmid_raw, "\\d{7,8}"))
+# distinct pmids
+distinct_pmid <- pmid_raw %>%
+    filter(!is.na(pmid_raw)) %>%
+    distinct(pmid_raw) %>%
+    nrow()
+# distinct families
+distinct_pmid_family <- pmid_raw %>%
+    filter(!is.na(pmid_raw)) %>%
+    distinct(family_id)
+### pmc
+pmcid_raw <- npl_pattern %>%
+    filter(repo_pattern == "pmcid") %>%
+    mutate(pmcid_raw = str_extract(npl_text, "(PMCID: (\\d{5,7}))|(PMCID:(\\d{5,7}))|(PMCID (\\d{5,7}))|(PMC(\\d{5,7}))")) %>%
+    mutate(pmcid_cleaned = str_extract(pmcid_raw, "\\d{5,7}"))
+# distinct pmcids
+distinct_pmcid <- pmcid_raw %>%
+    filter(!is.na(pmcid_raw)) %>%
+    distinct(pmcid_raw) %>%
+    nrow()
+# distinct families
+distinct_pmcid_family <- pmcid_raw %>%
+    filter(!is.na(pmcid_raw)) %>%
+    distinct(family_id)
+# all distinct pids
+distinct_pmid + distinct_pmcid
+# all distinct families
+bind_rows(distinct_pmid_family, distinct_pmcid_family) %>%
+  distinct() %>%
+  nrow()
+```
+
+```{r}
+epmc_df <- readr::read_csv("data/epmc_pmid_pmc.csv")
+
+epmc_08_20 <- epmc_df %>%
+  select(id, publication_number, pubYear, isOpenAccess) %>%
+  filter(pubYear > 2007, pubYear < 2021) %>%
+  inner_join(npl_pattern, by = "publication_number")
+# distinct pids
+length(unique(epmc_08_20$id))
+# distinct families
+length(unique(epmc_08_20$family_id))
+```
+
+#### arxiv
+
+```{r}
+# patent families
+npl_pattern %>% 
+    filter(repo_pattern %in% c("rxiv")) %>%
+    distinct(family_id) %>%
+    nrow
+# npl
+npl_pattern %>% 
+    filter(repo_pattern %in% c("rxiv")) %>%
+    distinct(npl_text) %>%
+    nrow()
+```
+
+pid extraction
+
+```{r}
+arxiv_df <- readr::read_csv("data/arxid_ids.csv")
+arxiv_short <- arxiv_df %>%
+  select(id, submitted) %>%
+  filter(!is.na(id)) %>%
+  separate(id, into = c("id_", "version"), sep = "v") 
+
+arxix_npl <- npl_pattern %>% 
+    filter(repo_pattern == "rxiv") %>%
+    mutate(arxiv_id = str_extract(npl_text, "(\\d{4}\\.\\d{4,5})")) %>%
+    select(publication_number, family_id, arxiv_id) %>%
+    filter(!is.na(arxiv_id))
+arxiv_patent <- inner_join(arxix_npl, arxiv_short, by = c("arxiv_id" = "id_")) %>%
+  distinct()
+
+# distinct families
+length(unique(arxiv_patent$family_id))
+# distinct pids
+length(unique(arxiv_patent$arxiv_id))
+arxiv_patent_08_20 <- arxiv_patent %>% 
+  filter(submitted >= "2008-01-01", submitted < "2021-01-01")
+
+# distinct families
+length(unique(arxiv_patent_08_20$family_id))
+# distinct pids
+length(unique(arxiv_patent_08_20$arxiv_id))
+```
+
+### total 2008 - 2020
+
+```{r}
+upw <- dois_df %>%
+  filter(!is.na(doi_cleaned)) %>%
+  mutate(doi_cleaned = tolower(doi_cleaned)) %>%
+  inner_join(oa, by = c("doi_cleaned" = "doi")) 
+upw_df <- upw %>%
+  select(pid = doi_cleaned, family_id, publication_number, is_oa, year) %>%
+  distinct()
+epmc_08_20_df <- epmc_08_20 %>%
+  select(pid = id, family_id, publication_number, year = pubYear, isOpenAccess) %>%
+  distinct() %>%
+  mutate(is_oa = ifelse(isOpenAccess == "Y", TRUE, FALSE)) %>%
+  select(-isOpenAccess)
+arxiv_patent_08_20_df <- arxiv_patent_08_20 %>%
+  mutate(year = lubridate::year(submitted)) %>%
+  select(pid = arxiv_id, family_id, publication_number, year) %>%
+  mutate(is_oa = TRUE)
+total_df <- bind_rows(upw_df, epmc_08_20_df, arxiv_patent_08_20_df)
+
+write_csv(total_df, "data/npl_oa_2008_2020.csv")
+length(unique(total_df$pid))
+length(unique(total_df$family_id))
+```
