@@ -10,8 +10,9 @@ FROM
   UNNEST(citation) AS d,
   UNNEST(cpc) AS cpc
 WHERE
-  e.publication_date >= 20100101
+  e.publication_date BETWEEN 20100101 AND 20203121
   AND e.application_kind = "A"
 GROUP BY
   pub_year,
   cpc
+  

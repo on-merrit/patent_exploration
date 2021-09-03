@@ -28,7 +28,9 @@ knitr::knit_hooks$set(
 )
 library(tidyverse)
 library(bigrquery)
+library(jsonlite)
 library(DBI)
+library(cowplot)
 ```
 
 ### NPL coverage
@@ -47,6 +49,7 @@ cpc_by_year_df <- DBI::dbGetQuery(con, cpc_by_year)
 patent_by_year <- cpc_by_year_df %>%
   group_by(pub_year) %>%
   summarise(all = sum(f0_))
+  patent_by_year
 ```
 
 ```{r}
@@ -56,6 +59,7 @@ cpc_by_year_npl_df <- DBI::dbGetQuery(con, cpc_by_year_npl)
 npl_by_year <- cpc_by_year_npl_df %>%
   group_by(pub_year) %>%
   summarise(npl = sum(f0_))
+npl_by_year
 ```
 
 ```{r, npl_plot}
@@ -124,3 +128,5 @@ cpc_df <-inner_join(cpc_patent_by_year, cpc_npl_by_year, by = "cpc") %>%
   mutate(prop = round(npl / all * 100, 2))
 knitr::kable(cpc_df, format.args = list(big.mark = ','))
 ```
+
+
