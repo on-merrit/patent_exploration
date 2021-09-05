@@ -66,19 +66,18 @@ npl_by_year
 npl_plot_df <- inner_join(npl_by_year, patent_by_year, by = "pub_year") %>%
   mutate(npl_lack = all - npl) %>%
   select(-all) %>%
-  pivot_longer(!pub_year) %>%
-  filter(pub_year < 2020)
+  pivot_longer(!pub_year)
 ggplot(npl_plot_df, aes(as.character(pub_year), value, fill = name, group = name)) +
   geom_area(position = position_stack(reverse = T)) +
    scale_fill_manual(
       values = c(npl_lack = "#cccccca0", npl = "#56b4e9"),
-      name = "Patents with citations to non-patent-literature",
+      name = "Cites non-patent-literature",
       labels = c("FALSE", "TRUE")
     ) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
   limit = c(0, 3000000), labels = scales::label_number()) +
   cowplot::theme_minimal_hgrid() +
-  labs(x = "Publication Year", y = "Patents") +
+  labs(x = "Publication year", y = "Patent family") +
   theme(legend.position = "top",
           legend.justification = "right")
 ```
@@ -99,12 +98,10 @@ Share
 
 ```{r}
 cpc_patent_by_year <- cpc_by_year_df %>%
-  filter(pub_year < 2020) %>%
   group_by(cpc) %>%
   summarise(all = sum(f0_))
 
 cpc_npl_by_year <- cpc_by_year_npl_df %>%
-  filter(pub_year < 2020) %>%
   group_by(cpc) %>%
   summarise(npl = sum(f0_))
 
@@ -129,4 +126,73 @@ cpc_df <-inner_join(cpc_patent_by_year, cpc_npl_by_year, by = "cpc") %>%
 knitr::kable(cpc_df, format.args = list(big.mark = ','))
 ```
 
+## by country
 
+```{r}
+country_per_year <- readr::read_file("sql/country.sql")
+country_per_year_df <- DBI::dbGetQuery(con, country_per_year)
+
+country_npl_per_year <- readr::read_file("sql/country_npl.sql")
+country_npl_per_year_df <- DBI::dbGetQuery(con, country_npl_per_year)
+
+country_df <- inner_join(country_per_year_df, country_npl_per_year_df, by = "country_code") %>%
+  mutate(country = countrycode::countrycode(country_code, origin = "iso2c", destination = 'country.name'))
+
+top_10 <- country_df %>%
+  top_n(10, patent_families) %>%
+  pull(country_code)
+country_df <- country_df %>%
+  mutate(country_fac = ifelse(country_code %in% top_10, country, "Other")) %>%
+  mutate(country_fac = ifelse(is.na(country_fac), "No Info", country_fac)) %>%
+  mutate(country_fac = fct_inorder(country_fac)) %>%
+  group_by(country_fac) %>%
+  summarise(patent_families_with_npl = sum(patent_families_with_npl, na.rm = TRUE),
+    patent_families = sum(patent_families)) %>%
+    mutate(prop = round(patent_families_with_npl / patent_families * 100, 2))
+
+country_df %>%
+  select(Country = country_fac, `Patent families` = patent_families, `with NPL` = patent_families_with_npl, `in%` = prop) %>%
+  knitr::kable()
+```
+
+### Number of NPLs per patent family
+
+by inventor's country
+
+```{r dimi_country}
+npl_per_country <- readr::read_file("sql/npl_perc_per_country.sql")
+npl_per_country_df <- DBI::dbGetQuery(con, npl_per_country)
+
+npl_country_perc_df <- npl_per_country_df %>%
+  mutate(country = countrycode::countrycode(country_code, origin = "iso2c", destination = 'country.name')) %>%
+  mutate(country_fac = ifelse(country_code %in% top_10, country, "Other")) %>%
+  mutate(country_fac = ifelse(is.na(country_fac), "No Info", country_fac)) %>%
+  filter(country_code %in% top_10) %>%
+  mutate(country_code = factor(country_code, levels = top_10)) %>%
+  arrange(country_code = factor(country_code)) %>%
+  mutate(country_fac = factor(country_fac, levels = country_fac)) %>%
+  filter(!is.na(country))
+library(ggeconodist)
+a_plot <- npl_country_perc_df %>%
+  ggplot() +
+  geom_econodist(aes(x = reorder(country_fac, desc(country_fac)), ymin = p10, median = p50, ymax = p90),
+         stat = "identity", show.legend = TRUE) +
+  scale_y_continuous(position = "right", limits = c(0,max(npl_country_perc_df$p90)))  +  
+  coord_flip() +
+  labs(
+    x = NULL, y = NULL
+   # title = "What is the uptake of hybrid open access among Elsevier journals?",
+  #  subtitle = "Proportion of immediate open access articles published in subscription-based journals\nJan 2015 to July 2019",
+   # caption = "Data source: Elsevier B.V. / Crossref"
+  ) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank()) +
+  theme(axis.ticks = element_blank()) +
+  theme(panel.grid.major.y = element_blank()) +
+  theme(panel.border = element_blank())
+
+grid.newpage()
+left_align(a_plot, c("subtitle", "title", "caption")) %>% 
+  add_econodist_legend(econodist_legend_grob(family = "sans"), below = "subtitle") %>% 
+  grid.draw()
+```
