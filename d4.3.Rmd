@@ -31,6 +31,7 @@ library(bigrquery)
 library(jsonlite)
 library(DBI)
 library(cowplot)
+library(ggeconodist)
 ```
 
 ### NPL coverage
@@ -172,7 +173,7 @@ npl_country_perc_df <- npl_per_country_df %>%
   arrange(country_code = factor(country_code)) %>%
   mutate(country_fac = factor(country_fac, levels = country_fac)) %>%
   filter(!is.na(country))
-library(ggeconodist)
+
 a_plot <- npl_country_perc_df %>%
   ggplot() +
   geom_econodist(aes(x = reorder(country_fac, desc(country_fac)), ymin = p10, median = p50, ymax = p90),
@@ -189,10 +190,106 @@ a_plot <- npl_country_perc_df %>%
   theme(panel.grid.minor = element_blank()) +
   theme(axis.ticks = element_blank()) +
   theme(panel.grid.major.y = element_blank()) +
-  theme(panel.border = element_blank())
+  theme(panel.border = element_blank()) +
+  theme(text = element_text(size = 14)) 
+
 
 grid.newpage()
 left_align(a_plot, c("subtitle", "title", "caption")) %>% 
   add_econodist_legend(econodist_legend_grob(family = "sans"), below = "subtitle") %>% 
   grid.draw()
+```
+
+by cpc
+
+```{r npl_perc_per_cpc}
+npl_per_cpc <- readr::read_file("sql/npl_perc_per_cpc.sql")
+npl_per_cpc_df <- DBI::dbGetQuery(con, npl_per_cpc) %>%
+  inner_join(cpc, by = c("cpc" = "code")) %>%
+  mutate(cpc = paste(cpc, section, sep = " - ")) %>%
+  select(-section)
+
+a_plot <- npl_per_cpc_df %>%
+  ggplot() +
+  geom_econodist(aes(x = reorder(cpc, desc(cpc)), ymin = p10, median = p50, ymax = p90),
+         stat = "identity", show.legend = TRUE) +
+  scale_y_continuous(position = "right", limits = c(0,max(npl_per_cpc_df$p90)))  +  
+  scale_x_discrete(labels = function(x) str_trunc(x, 35, side = "right")) +
+  coord_flip() +
+  labs(
+    x = NULL, y = NULL
+   # title = "What is the uptake of hybrid open access among Elsevier journals?",
+  #  subtitle = "Proportion of immediate open access articles published in subscription-based journals\nJan 2015 to July 2019",
+   # caption = "Data source: Elsevier B.V. / Crossref"
+  ) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank()) +
+  theme(axis.ticks = element_blank()) +
+  theme(panel.grid.major.y = element_blank()) +
+  theme(panel.border = element_blank()) +
+  theme(text = element_text(size = 14)) 
+
+grid.newpage()
+left_align(a_plot, c("subtitle", "title", "caption")) %>% 
+  add_econodist_legend(econodist_legend_grob(family = "sans"), below = "subtitle") %>% 
+  grid.draw()
+```
+
+### OA
+
+```{r}
+oa_df <- readr::read_csv("data/npl_oa_2008_2020.csv") %>%
+    mutate(family_id = as.character(family_id))
+```
+
+```{r oa_by_year}
+oa_all <- oa_df %>%
+  group_by(is_oa, year) %>%
+  summarise(n = n_distinct(family_id)) %>%
+  filter(year < 2021)
+
+
+```{r}
+oa_all %>%
+  mutate(year = as.character(year)) %>%
+  ggplot(aes(year, n, fill = is_oa, group = is_oa)) +
+  geom_area() +
+   scale_fill_manual(
+      values = c("#cccccca0", "#56b4e9"),
+      name = NULL,
+      labels = c("Closed", "Open Access")
+    ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)), 
+    ) +
+  cowplot::theme_minimal_hgrid() +
+  labs(x = "Publication Year", y = "NPL") +
+  theme(legend.position = "top",
+          legend.justification = "right")
+```
+
+lag
+
+```{r get family id pubilcation year}
+bg_patent_oa <- 
+  bq_table("api-project-764811344545", "tmp", "patent_oa")
+if(bq_table_exists(bg_patent_oa)) 
+  bq_table_delete(bg_patent_oa)
+bigrquery::bq_table_upload(
+  bg_patent_oa,
+  oa_df)
+```
+
+```
+oa_df %>%
+  filter(year < 2021) %>%
+  select(doi, publication_date, country_code, year) %>%
+  mutate(npl_year = substr(publication_date, 1, 4)) %>%
+  mutate(lag = as.integer(npl_year) - as.integer(year)) %>%
+  ggplot(aes(x = lag)) +
+  geom_histogram(stat = "count", fill="#56B4E9") +
+  geom_vline(aes(xintercept = median(lag, na.rm = T)),
+             colour = "#E69F00", linetype ="dashed", size = .8) +
+  cowplot::theme_minimal_hgrid() +
+  scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+  labs(y = "NPL", x = " Lag between patent issued year and npl publication year")
 ```

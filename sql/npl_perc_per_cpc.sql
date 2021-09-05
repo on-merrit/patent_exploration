@@ -16,7 +16,7 @@ FROM (
   FROM (
     SELECT
       COUNT(DISTINCT d.npl_text) AS npl,
-      SUBSTR(cpc.code, 1, 1) AS cpc
+      SUBSTR(cpc.code, 1, 1) AS cpc,
       e.family_id
     FROM
       `patents-public-data.patents.publications` AS e,
