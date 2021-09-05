@@ -221,16 +221,19 @@ upw <- dois_df %>%
   inner_join(oa, by = c("doi_cleaned" = "doi")) 
 upw_df <- upw %>%
   select(pid = doi_cleaned, family_id, publication_number, is_oa, year) %>%
-  distinct()
+  distinct() %>%
+  mutate(src = "Unpaywall")
 epmc_08_20_df <- epmc_08_20 %>%
   select(pid = id, family_id, publication_number, year = pubYear, isOpenAccess) %>%
   distinct() %>%
   mutate(is_oa = ifelse(isOpenAccess == "Y", TRUE, FALSE)) %>%
-  select(-isOpenAccess)
+  select(-isOpenAccess) %>%
+  mutate(src = "Europe PMC")
 arxiv_patent_08_20_df <- arxiv_patent_08_20 %>%
   mutate(year = lubridate::year(submitted)) %>%
   select(pid = arxiv_id, family_id, publication_number, year) %>%
-  mutate(is_oa = TRUE)
+  mutate(is_oa = TRUE) %>%
+  mutate(src = "arXiv")
 total_df <- bind_rows(upw_df, epmc_08_20_df, arxiv_patent_08_20_df)
 
 write_csv(total_df, "data/npl_oa_2008_2020.csv")
@@ -238,4 +241,29 @@ length(unique(total_df$pid))
 #> [1] 230845
 length(unique(total_df$family_id))
 #> [1] 155291
+```
+
+enrich with patent metadata
+
+``` r
+library(bigrquery)
+library(DBI)
+con <- DBI::dbConnect(
+  bigrquery::bigquery(),
+  project = "api-project-764811344545"
+)
+
+bg_patent_oa <- bq_table("api-project-764811344545", "tmp", "patent_oa")
+if(bq_table_exists(bg_patent_oa))
+  bq_table_delete(bg_patent_oa)
+bigrquery::bq_table_upload(
+  bg_patent_oa,
+  total_df)
+```
+
+``` r
+oa_enriched <- readr::read_file("sql/enrich_oa_with_patent_md.sql")
+oa_enriched_df <- DBI::dbGetQuery(con, oa_enriched)
+
+write_csv(oa_enriched_df, "data/oa_patent_matched_md.csv")
 ```
