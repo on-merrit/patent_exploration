@@ -11,13 +11,13 @@ FROM (
     SUBSTR(cpc.code, 1, 1) AS cpc,
     a.country_code
   FROM
-    `patents-public-data.patents.publications`,
-    UNNEST(assignee_harmonized) AS a,
+    `patents-public-data.patents.publications` LEFT JOIN
+    UNNEST(assignee_harmonized) AS a LEFT JOIN
     UNNEST(cpc) AS cpc
   WHERE
     publication_date BETWEEN 20100101
     AND 20203121) AS e
 INNER JOIN
-  `api-project-764811344545.tmp.patent_oa`
+  `api-project-764811344545.tmp.patent_oa` as oa
 ON
-  e.publication_number = `api-project-764811344545.tmp.patent_oa`.publication_number
+  e.publication_number = oa.publication_number

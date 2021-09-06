@@ -34,8 +34,10 @@ library(jsonlite)
 #### Unpaywall
 
 ```{r}
-npl_df <- readr::read_csv("data/bq_doi_20210824.csv")
-dois <- readr::read_csv("data/dois_to_be_checked.csv")
+npl_df <- readr::read_csv("data/bq_doi_20210824.csv") %>%
+   filter(publication_date < 20210101)
+dois <- readr::read_csv("data/dois_to_be_checked.csv") %>%
+  filter(publication_number %in% npl_df$publication_number)
 dois_df <- npl_df %>%
   select(publication_number, family_id) %>%
   left_join(dois, by = "publication_number") %>%
@@ -60,7 +62,8 @@ dois_df %>%
   filter(!is.na(doi_cleaned)) %>%
     summarise(n_distinct(family_id))
 # family with unpaywall match
-oa <- jsonlite::stream_in(file("data/oa_patents.json"))
+oa <- jsonlite::stream_in(file("data/oa_patents.json"), verbose = FALSE) %>%
+  filter(tolower(doi) %in%  tolower(dois$doi_cleaned))
 dois_df %>%
   filter(!is.na(doi_cleaned)) %>%
   mutate(doi_cleaned = tolower(doi_cleaned)) %>%
@@ -134,7 +137,7 @@ bind_rows(distinct_pmid_family, distinct_pmcid_family) %>%
 epmc_df <- readr::read_csv("data/epmc_pmid_pmc.csv")
 
 epmc_08_20 <- epmc_df %>%
-  select(id, publication_number, pubYear, isOpenAccess) %>%
+  select(id, publication_number, pubYear, isOpenAccess, pubType) %>%
   filter(pubYear > 2007, pubYear < 2021) %>%
   inner_join(npl_pattern, by = "publication_number")
 # distinct pids
@@ -196,20 +199,21 @@ upw <- dois_df %>%
   mutate(doi_cleaned = tolower(doi_cleaned)) %>%
   inner_join(oa, by = c("doi_cleaned" = "doi")) 
 upw_df <- upw %>%
-  select(pid = doi_cleaned, family_id, publication_number, is_oa, year) %>%
+  select(pid = doi_cleaned, family_id, publication_number, is_oa, year, pub_type = genre) %>%
   distinct() %>%
   mutate(src = "Unpaywall")
 epmc_08_20_df <- epmc_08_20 %>%
-  select(pid = id, family_id, publication_number, year = pubYear, isOpenAccess) %>%
+  select(pid = id, family_id, publication_number, year = pubYear, isOpenAccess, pubType) %>%
   distinct() %>%
   mutate(is_oa = ifelse(isOpenAccess == "Y", TRUE, FALSE)) %>%
-  select(-isOpenAccess) %>%
+  mutate(pub_type = ifelse(grepl("article", pubType, ignore.case = TRUE, fixed = FALSE), "journal-article", "other")) %>%
+  select(-isOpenAccess, -pubType) %>%
   mutate(src = "Europe PMC")
 arxiv_patent_08_20_df <- arxiv_patent_08_20 %>%
   mutate(year = lubridate::year(submitted)) %>%
   select(pid = arxiv_id, family_id, publication_number, year) %>%
   mutate(is_oa = TRUE) %>%
-  mutate(src = "arXiv")
+  mutate(src = "arXiv", pub_type = "posted-content")
 total_df <- bind_rows(upw_df, epmc_08_20_df, arxiv_patent_08_20_df)
 
 write_csv(total_df, "data/npl_oa_2008_2020.csv")
@@ -238,6 +242,8 @@ bigrquery::bq_table_upload(
 ```{r}
 oa_enriched <- readr::read_file("sql/enrich_oa_with_patent_md.sql")
 oa_enriched_df <- DBI::dbGetQuery(con, oa_enriched)
+
+oa_enriched_df
 
 write_csv(oa_enriched_df, "data/oa_patent_matched_md.csv")
 ```
