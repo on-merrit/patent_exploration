@@ -81,7 +81,11 @@ get_patents_with_repo <- function(repo_pattern) {
         `patents-public-data.patents.publications` as e,
         UNNEST(citation) as d
     WHERE
+<<<<<<< HEAD
         e.publication_date BETWEEN 20100101 AND 20203121
+=======
+        e.publication_date >= 20100101
+>>>>>>> a4d75d7fc89b6a1b54b2d1d37ac8ba318f52f90d
         AND e.application_kind = 'A'
         AND lower(d.npl_text) like {tolower(paste0('%', my_pattern, '%'))}
   ", .con = con)
