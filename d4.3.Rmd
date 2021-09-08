@@ -254,6 +254,7 @@ oa_n
 oa_share <- oa_n / all_n
 oa_share
 ```
+
 ```{r}
 oa_all <- oa_df %>%
   group_by(is_oa, year) %>%
@@ -458,3 +459,102 @@ inner_join(cn_oa_df, cn_oa_all, by = "country_fac") %>%
 ```
 
 ### oa by provider
+
+```{r compare_cat, fig.width=7}
+oa_cat <- readr::read_csv("data/oa_patent_matched_md_cat.csv") %>%
+  filter(is_oa == TRUE, year < 2021) %>%
+  mutate(provider_cat = factor(provider_cat, levels=c("Journal only", "Journal & Repository", "Repository only")))
+
+oa_yrl_cat <- oa_cat %>%
+  group_by(provider_cat, year) %>%
+  summarise(n = n_distinct(pid)) 
+
+cat_all <- oa_cat %>%
+  group_by(year) %>%
+  summarise(n = n_distinct(pid))
+
+ggplot(oa_yrl_cat, aes(x = year, y = n)) +
+  geom_bar(
+    data = cat_all,
+    aes(fill = "All OA Articles"),
+    color = "transparent",
+    stat = "identity"
+  ) +
+  geom_bar(aes(fill = "by Host"), color = "transparent", stat = "identity") +
+  facet_wrap( ~ provider_cat, nrow = 1) +
+  scale_fill_manual(values = c("#b3b3b3a0", "#56B4E9"), name = "") +
+  scale_y_continuous(
+      labels = scales::number_format(big.mark = ","),
+      expand = expansion(mult = c(0, 0.05)),
+      limits = c(0, 11500)) +
+  #scale_x_continuous(labels = scales::label_number()) +
+  labs(x = "Publication Year", y = "OA NPLs") +
+  theme(legend.position = "top", legend.justification = "right") +
+  cowplot::theme_minimal_hgrid() +
+  theme(legend.position = "top",
+           legend.justification = "right")
+```
+
+by cpc
+
+```{r provider_cat_cpc, fig.asp=0.8}
+cpc_oa <- oa_cat %>%
+  group_by(cpc, provider_cat) %>%
+  summarise(n = n_distinct(pid)) %>%
+  ungroup() %>%
+  inner_join(cpc, by = c("cpc" = "code")) %>%
+  mutate(cpc_label = paste(cpc, section, sep = " - "))
+
+cpc_all <- oa_cat %>%
+  group_by(cpc) %>%
+  summarise(all = n_distinct(pid))
+
+
+cpc_oa %>%
+  inner_join(cpc_all, by = "cpc") %>%
+  mutate(cpc_labels =  str_trunc(cpc_label, 35, side = "right")) %>%
+  mutate(cpc_labels = paste0(cpc_labels, "\n(n = ", prettyNum(all, ","), ")")) %>%
+  ggplot(aes(reorder(cpc_labels, desc(cpc_labels)), n, fill = provider_cat)) +
+  geom_bar(position = "fill",stat = "identity") +
+  coord_flip() +
+  scale_fill_manual(values = c("#E69F00", "#0072B2", "#009E73"),
+  guide = guide_legend(reverse = TRUE),
+  name = NULL) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+    labels = scales::percent) +
+    cowplot::theme_minimal_vgrid() +
+     labs(x = NULL, y = "NPL OA") +
+  theme(legend.position = "top",
+          legend.justification = "right")
+```
+
+by country
+
+```{r provider_cat_country, fig.asp=0.8}
+
+cat_oa_df <- oa_cat %>%
+  inner_join(npl_country_perc_df, by = "country_code") %>%
+  group_by(country_fac, provider_cat) %>%
+  summarise(n = n_distinct(pid))
+
+cat_oa_all <- oa_cat %>%
+  inner_join(npl_country_perc_df, by = "country_code") %>%
+  group_by(country_fac) %>%
+  summarise(all = n_distinct(pid)) %>%
+  mutate(cn_labels = paste0(country_fac, "\n(n = ", prettyNum(all, ","), ")"))
+
+inner_join(cat_oa_df, cat_oa_all, by = "country_fac") %>%
+  ggplot(aes(reorder(cn_labels, desc(country_fac)), n, fill = provider_cat)) +
+    geom_bar(position = "fill", stat = "identity") +
+    coord_flip() +
+    scale_fill_manual(values = c("#E69F00", "#0072B2", "#009E73"),
+  guide = guide_legend(reverse = TRUE),
+  name = NULL)  +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+      labels = scales::percent) +
+     # scale_x_discrete(labels = cn_labels) +
+      cowplot::theme_minimal_vgrid() +
+      labs(x = NULL, y = "NPL OA") +
+    theme(legend.position = "top",
+            legend.justification = "right")
+```

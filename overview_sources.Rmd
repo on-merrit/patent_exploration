@@ -246,6 +246,7 @@ oa_enriched_df <- DBI::dbGetQuery(con, oa_enriched)
 oa_enriched_df
 
 write_csv(oa_enriched_df, "data/oa_patent_matched_md.csv")
+<<<<<<< HEAD
 ```
 
 
@@ -294,4 +295,6 @@ oa_enriched_df_cat <- oa_enriched_df %>%
   distinct()
 
 write_csv(oa_enriched_df_cat, ("data/oa_patent_matched_md.csv")
+=======
+>>>>>>> a4d75d7fc89b6a1b54b2d1d37ac8ba318f52f90d
 ```
