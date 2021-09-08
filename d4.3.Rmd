@@ -119,7 +119,7 @@ cpc <- tibble::tribble(
 "H","Electricity",
 "Y","General"
 )
-cpc_df <-inner_join(cpc_patent_by_year, cpc_npl_by_year, by = "cpc") %>%
+cpc_df <- inner_join(cpc_patent_by_year, cpc_npl_by_year, by = "cpc") %>%
   inner_join(cpc, by = c("cpc" = "code")) %>%
   mutate(cpc = paste(cpc, section, sep = " - ")) %>%
   select(-section) %>%
@@ -238,20 +238,48 @@ left_align(a_plot, c("subtitle", "title", "caption")) %>%
 ### OA
 
 ```{r}
-oa_df <- readr::read_csv("data/npl_oa_2008_2020.csv") %>%
-    mutate(family_id = as.character(family_id))
+oa_df <- readr::read_csv("data/oa_patent_matched_md.csv") %>%
+    mutate(family_id = as.character(family_id)) %>%
+    select(-publication_number_1, -family_id_1) %>%
+    filter(year < 2021)
+```
+
+```{r}
+# all
+all_n <- length(unique(oa_df$pid))
+all_n
+# oa
+oa_n <- length(unique(oa_df[oa_df$is_oa == TRUE,]$pid))
+oa_n
+oa_share <- oa_n / all_n
+oa_share
+```
+```{r}
+oa_all <- oa_df %>%
+  group_by(is_oa, year) %>%
+  summarise(n = n_distinct(pid)) 
+
+pub_all <- oa_df %>%
+  group_by(year) %>%
+  summarise(all_n = n_distinct(pid))
+
+oa_shares_by_year <- inner_join(pub_all, filter(oa_all, is_oa == TRUE), by = "year") %>%
+  mutate(oa_share = n / all_n)
+oa_shares_by_year
+
+sum(oa_shares_by_year$all_n)
+
+sum(oa_shares_by_year$n)
+
+sum(oa_shares_by_year$n) / sum(oa_shares_by_year$all_n)
+
+
 ```
 
 ```{r oa_by_year}
-oa_all <- oa_df %>%
-  group_by(is_oa, year) %>%
-  summarise(n = n_distinct(family_id)) %>%
-  filter(year < 2021)
-
-
-```{r}
 oa_all %>%
   mutate(year = as.character(year)) %>%
+  mutate(year = gsub("^.{2}", "'", year)) %>%
   ggplot(aes(year, n, fill = is_oa, group = is_oa)) +
   geom_area() +
    scale_fill_manual(
@@ -259,8 +287,8 @@ oa_all %>%
       name = NULL,
       labels = c("Closed", "Open Access")
     ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.05)), 
-    ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+    labels = scales::label_number()) +
   cowplot::theme_minimal_hgrid() +
   labs(x = "Publication Year", y = "NPL") +
   theme(legend.position = "top",
@@ -269,27 +297,164 @@ oa_all %>%
 
 lag
 
-```{r get family id pubilcation year}
-bg_patent_oa <- 
-  bq_table("api-project-764811344545", "tmp", "patent_oa")
-if(bq_table_exists(bg_patent_oa)) 
-  bq_table_delete(bg_patent_oa)
-bigrquery::bq_table_upload(
-  bg_patent_oa,
-  oa_df)
-```
 
-```
-oa_df %>%
-  filter(year < 2021) %>%
-  select(doi, publication_date, country_code, year) %>%
-  mutate(npl_year = substr(publication_date, 1, 4)) %>%
-  mutate(lag = as.integer(npl_year) - as.integer(year)) %>%
-  ggplot(aes(x = lag)) +
+```{r lap_patent_publication}
+lag_df <- oa_df %>%
+  filter(pub_year < 2021) %>%
+  distinct(pub_year, family_id, year) %>%
+  mutate(npl_year = substr(year, 1, 4)) %>%
+  mutate(lag = as.integer(pub_year) - as.integer(npl_year))
+ggplot(lag_df, aes(x = lag)) +
   geom_histogram(stat = "count", fill="#56B4E9") +
   geom_vline(aes(xintercept = median(lag, na.rm = T)),
              colour = "#E69F00", linetype ="dashed", size = .8) +
   cowplot::theme_minimal_hgrid() +
-  scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
-  labs(y = "NPL", x = " Lag between patent issued year and npl publication year")
+  scale_y_continuous(expand = expand_scale(mult = c(0, 0.05)),
+  labels = scales::label_number()) +
+  labs(y = "Patent families", x = "Yearly lag between NPL publication and patent citation")
 ```
+
+
+by source
+
+```{r src_lag}
+oa_df %>%
+  filter(pub_year < 2021) %>%
+  distinct(pub_year, family_id, year, src) %>%
+  mutate(npl_year = substr(year, 1, 4)) %>%
+  mutate(lag = as.integer(pub_year) - as.integer(npl_year)) %>%
+  ggplot(aes(x = lag, fill = src)) +
+  geom_density(adjust = 5) +
+  scale_fill_manual(
+    name = "Data source",
+    values = alpha(c("#f39100", "#b71a49", "#009bb4"), 0.9)) +
+  labs(x = "Yearly lag between NPL publication and patent citation") +
+  scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+  cowplot::theme_minimal_hgrid()
+```
+
+```{r src_oa_lag}
+oa_df %>%
+  filter(pub_year < 2021) %>%
+  distinct(pub_year, family_id, year, is_oa) %>%
+  mutate(npl_year = substr(year, 1, 4)) %>%
+  mutate(lag = as.integer(pub_year) - as.integer(npl_year)) %>%
+  ggplot(aes(x = lag, fill = is_oa)) +
+  geom_density(adjust = 5) +
+  scale_fill_manual(values = alpha(c("#f39100", "#b71a49", "#009bb4"), 0.9)) +
+  cowplot::theme_minimal_hgrid()
+```
+
+by type
+
+```{r}
+type_all <- oa_df %>%
+  distinct(pub_type, pid) %>%
+  mutate(pub_type_fac = fct_lump_n(pub_type, 3)) %>%
+  count(pub_type_fac, sort = TRUE) %>%
+  mutate(prop = n / sum(n) * 100) 
+type_oa <- oa_df %>%
+  distinct(pub_type, pid, is_oa) %>%
+  mutate(pub_type_fac = fct_lump_n(pub_type, 3)) %>%
+  count(pub_type_fac, is_oa, sort = TRUE, name = "oa") %>%
+  filter(is_oa == TRUE)
+inner_join(type_all, type_oa, by = "pub_type_fac") %>%
+  select(-is_oa) %>%
+  mutate(oa_prop = oa / n *100) %>%
+  knitr::kable()
+```
+
+#### preprint
+
+```{r}
+preprint_df <- readr::read_csv("data/oa_patent_matched_md.csv") %>%
+    mutate(family_id = as.character(family_id)) %>%
+    select(-publication_number_1, -family_id_1) %>%
+    filter(year < 2021, pub_year < 2021) %>%
+    filter(pub_type == "posted-content")
+# number of preprints
+length(unique(preprint_df$pid))
+# number of preprint arxiv
+preprint_df %>%
+  group_by(src) %>%
+  summarise(n = n_distinct(pid))
+preprint_cr <- readr::read_csv("data/preprint_cr.csv") %>%
+  # only patent families 
+  filter(tolower(doi) %in% tolower(preprint_df$pid))
+preprint_cr %>%
+  count(preprint_server)
+
+# sars covid
+preprint_cr %>% filter(grepl("SARS", title, ignore.case = TRUE)) %>% count(preprint_server)
+```
+
+by cpc
+
+```{r cpc_oa, fig.asp=0.8}
+cpc_oa <- oa_df %>%
+  group_by(cpc, is_oa) %>%
+  summarise(n = n_distinct(pid)) %>%
+  ungroup() %>%
+  inner_join(cpc, by = c("cpc" = "code")) %>%
+  mutate(cpc_label = paste(cpc, section, sep = " - "))
+
+cpc_all <- oa_df %>%
+  group_by(cpc) %>%
+  summarise(all = n_distinct(pid))
+
+
+cpc_oa %>%
+  inner_join(cpc_all, by = "cpc") %>%
+  mutate(cpc_labels =  str_trunc(cpc_label, 35, side = "right")) %>%
+  mutate(cpc_labels = paste0(cpc_labels, "\n(n = ", prettyNum(all, ","), ")")) %>%
+  ggplot(aes(reorder(cpc_labels, desc(cpc_labels)), n, fill = is_oa)) +
+  geom_bar(position = "fill",stat = "identity") +
+  geom_hline(yintercept = oa_share, colour = "#E69F00", linetype ="dashed", size = .8) +
+  coord_flip() +
+  scale_fill_manual(
+      values = c("#cccccca0", "#56b4e9"),
+      name = NULL,
+      labels = c("Closed", "Open Access")
+    ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+    labels = scales::percent) +
+    cowplot::theme_minimal_vgrid() +
+     labs(x = NULL, y = "NPL OA Share") +
+  theme(legend.position = "top",
+          legend.justification = "right")
+```
+
+by inventor country 
+
+```{r country_oa, fig.asp=0.8}
+cn_oa_df <- oa_df %>%
+  inner_join(npl_country_perc_df, by = "country_code") %>%
+  group_by(country_fac, is_oa) %>%
+  summarise(n = n_distinct(pid))
+
+cn_oa_all <- oa_df %>%
+  inner_join(npl_country_perc_df, by = "country_code") %>%
+  group_by(country_fac) %>%
+  summarise(all = n_distinct(pid)) %>%
+  mutate(cn_labels = paste0(country_fac, "\n(n = ", prettyNum(all, ","), ")"))
+
+inner_join(cn_oa_df, cn_oa_all, by = "country_fac") %>%
+  ggplot(aes(reorder(cn_labels, desc(country_fac)), n, fill = is_oa)) +
+    geom_bar(position = "fill", stat = "identity") +
+    coord_flip() +
+    geom_hline(yintercept = oa_share, colour = "#E69F00", linetype ="dashed", size = .8) +
+    scale_fill_manual(
+        values = c("#cccccca0", "#56b4e9"),
+        name = NULL,
+        labels = c("Closed", "Open Access")
+      ) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+      labels = scales::percent) +
+     # scale_x_discrete(labels = cn_labels) +
+      cowplot::theme_minimal_vgrid() +
+      labs(x = NULL, y = "NPL OA Share") +
+    theme(legend.position = "top",
+            legend.justification = "right")
+```
+
+### oa by provider
