@@ -423,6 +423,13 @@ cpc_oa %>%
      labs(x = NULL, y = "NPL OA Share") +
   theme(legend.position = "top",
           legend.justification = "right")
+
+cpc_oa %>%
+  inner_join(cpc_all, by = "cpc") %>%
+  mutate(cpc_labels =  str_trunc(cpc_label, 35, side = "right")) %>%
+  mutate(prop = n / all *100) %>%
+  filter(is_oa == TRUE) %>%
+  select(cpc_labels, prop)
 ```
 
 by inventor country 
@@ -456,6 +463,20 @@ inner_join(cn_oa_df, cn_oa_all, by = "country_fac") %>%
       labs(x = NULL, y = "NPL OA Share") +
     theme(legend.position = "top",
             legend.justification = "right")
+
+cn_oa_df <- oa_df %>%
+  inner_join(npl_country_perc_df, by = "country_code") %>%
+  group_by(country_fac, is_oa) %>%
+  summarise(n = n_distinct(pid))
+
+cn_oa_all <- oa_df %>%
+  inner_join(npl_country_perc_df, by = "country_code") %>%
+  group_by(country_fac) %>%
+  summarise(all = n_distinct(pid)) %>%
+  mutate(cn_labels = paste0(country_fac, "\n(n = ", prettyNum(all, ","), ")"))
+inner_join(cn_oa_df, cn_oa_all, by = "country_fac") %>%
+  filter(is_oa == TRUE) %>%
+  mutate(prop = n / all * 100)
 ```
 
 ### oa by provider
@@ -493,6 +514,11 @@ ggplot(oa_yrl_cat, aes(x = year, y = n)) +
   cowplot::theme_minimal_hgrid() +
   theme(legend.position = "top",
            legend.justification = "right")
+
+oa_cat %>%
+  group_by(provider_cat) %>%
+  summarise(n = n_distinct(pid)) %>%
+  mutate(prop = n / sum(n))
 ```
 
 by cpc
@@ -526,6 +552,13 @@ cpc_oa %>%
      labs(x = NULL, y = "NPL OA") +
   theme(legend.position = "top",
           legend.justification = "right")
+
+cpc_oa %>%
+  inner_join(cpc_all, by = "cpc") %>%
+  mutate(cpc_labels =  str_trunc(cpc_label, 35, side = "right")) %>%
+  mutate(prop = n / all * 100) %>%
+  select(cpc_label, provider_cat, n, prop) %>%
+  print(n=40)
 ```
 
 by country
@@ -557,4 +590,35 @@ inner_join(cat_oa_df, cat_oa_all, by = "country_fac") %>%
       labs(x = NULL, y = "NPL OA") +
     theme(legend.position = "top",
             legend.justification = "right")
+```
+
+oa benchmark
+
+```{r upw_comparision}
+upw <- readr::read_file("sql/upw_by_year.sql")
+upw_by_year <- DBI::dbGetQuery(con, upw)
+upw_all <- upw_by_year %>%
+  group_by(year) %>%
+  summarise(all = sum(n))
+upw_oa_by_year <- upw_by_year %>%
+  filter(is_oa == TRUE) %>%
+  inner_join(upw_all) %>%
+  mutate(prop = n / all) %>%
+  arrange(year)
+
+oa_shares_by_year %>% 
+  select(year, oa_share_npl = oa_share) %>%
+  inner_join(upw_oa_by_year) %>%
+  select(year, `Unpaywall Total` = prop, `NPL subset` = oa_share_npl) %>%
+  pivot_longer(c(`Unpaywall Total`,  `NPL subset`)) %>%
+  ggplot(aes(year, value, group = name, color = name)) +
+  geom_line() +
+  geom_point(color = "grey20") +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1L)) +
+  scale_color_manual(values = c("#b71a49", "#009bb4"), name = NULL) +
+  labs(x = "Publication year", y = "OA percentage") +
+  guides(colour = guide_legend(reverse = TRUE)) +
+  cowplot::theme_minimal_hgrid() +
+  theme(legend.position = "top",
+          legend.justification = "right")
 ```
