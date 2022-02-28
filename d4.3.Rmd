@@ -291,7 +291,7 @@ oa_all %>%
   scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
     labels = scales::label_number()) +
   cowplot::theme_minimal_hgrid() +
-  labs(x = "Publication Year", y = "NPL") +
+  labs(x = "Publication Year", y = "SNPR") +
   theme(legend.position = "top",
           legend.justification = "right")
 ```
@@ -312,7 +312,7 @@ ggplot(lag_df, aes(x = lag)) +
   cowplot::theme_minimal_hgrid() +
   scale_y_continuous(expand = expand_scale(mult = c(0, 0.05)),
   labels = scales::label_number()) +
-  labs(y = "Patent families", x = "Yearly lag between NPL publication and patent citation")
+  labs(y = "Patent families", x = "Yearly lag between SNPR publication and citation in patent")
 ```
 
 
@@ -329,7 +329,7 @@ oa_df %>%
   scale_fill_manual(
     name = "Data source",
     values = alpha(c("#f39100", "#b71a49", "#009bb4"), 0.9)) +
-  labs(x = "Yearly lag between NPL publication and patent citation") +
+  labs(x = "Yearly lag between SNPR publication and citation in patent") +
   scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
   cowplot::theme_minimal_hgrid()
 ```
@@ -420,7 +420,7 @@ cpc_oa %>%
   scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
     labels = scales::percent) +
     cowplot::theme_minimal_vgrid() +
-     labs(x = NULL, y = "NPL OA Share") +
+     labs(x = NULL, y = "SNPR OA Share") +
   theme(legend.position = "top",
           legend.justification = "right")
 
@@ -460,7 +460,7 @@ inner_join(cn_oa_df, cn_oa_all, by = "country_fac") %>%
       labels = scales::percent) +
      # scale_x_discrete(labels = cn_labels) +
       cowplot::theme_minimal_vgrid() +
-      labs(x = NULL, y = "NPL OA Share") +
+      labs(x = NULL, y = "SNPR OA Share") +
     theme(legend.position = "top",
             legend.justification = "right")
 
@@ -484,7 +484,8 @@ inner_join(cn_oa_df, cn_oa_all, by = "country_fac") %>%
 ```{r compare_cat, fig.width=7}
 oa_cat <- readr::read_csv("data/oa_patent_matched_md_cat.csv") %>%
   filter(is_oa == TRUE, year < 2021) %>%
-  mutate(provider_cat = factor(provider_cat, levels=c("Journal only", "Journal & Repository", "Repository only")))
+  mutate(provider_cat = gsub("Journal", "Publisher", provider_cat)) %>%
+  mutate(provider_cat = factor(provider_cat, levels=c("Publisher only", "Publisher & Repository", "Repository only")))
 
 oa_yrl_cat <- oa_cat %>%
   group_by(provider_cat, year) %>%
@@ -493,6 +494,7 @@ oa_yrl_cat <- oa_cat %>%
 cat_all <- oa_cat %>%
   group_by(year) %>%
   summarise(n = n_distinct(pid))
+
 
 ggplot(oa_yrl_cat, aes(x = year, y = n)) +
   geom_bar(
@@ -509,7 +511,7 @@ ggplot(oa_yrl_cat, aes(x = year, y = n)) +
       expand = expansion(mult = c(0, 0.05)),
       limits = c(0, 11500)) +
   #scale_x_continuous(labels = scales::label_number()) +
-  labs(x = "Publication Year", y = "OA NPLs") +
+  labs(x = "Publication Year", y = "OA SNPR") +
   theme(legend.position = "top", legend.justification = "right") +
   cowplot::theme_minimal_hgrid() +
   theme(legend.position = "top",
@@ -519,6 +521,24 @@ oa_cat %>%
   group_by(provider_cat) %>%
   summarise(n = n_distinct(pid)) %>%
   mutate(prop = n / sum(n))
+```
+
+```{r snpr_oa_type}
+cat_all %>%
+  rename(n_all = n) %>%
+  inner_join(oa_yrl_cat, by = "year") %>%
+  mutate(prop = n / n_all) %>%
+  mutate(year = gsub("^.{2}", "'", year)) %>%
+  ggplot(aes(year, prop, fill = provider_cat)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("#E69F00", "#0072B2", "#009E73"), name = NULL,
+    guide = guide_legend(reverse = TRUE)) +
+   scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+    labels = scales::percent) +
+    cowplot::theme_minimal_hgrid() +
+     labs(x = "Publication year", y = "SNPR OA") +
+  theme(legend.position = "top",
+          legend.justification = "right")
 ```
 
 by cpc
@@ -549,7 +569,7 @@ cpc_oa %>%
   scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
     labels = scales::percent) +
     cowplot::theme_minimal_vgrid() +
-     labs(x = NULL, y = "NPL OA") +
+     labs(x = NULL, y = "SNPR OA") +
   theme(legend.position = "top",
           legend.justification = "right")
 
@@ -587,7 +607,7 @@ inner_join(cat_oa_df, cat_oa_all, by = "country_fac") %>%
       labels = scales::percent) +
      # scale_x_discrete(labels = cn_labels) +
       cowplot::theme_minimal_vgrid() +
-      labs(x = NULL, y = "NPL OA") +
+      labs(x = NULL, y = "SNPR OA") +
     theme(legend.position = "top",
             legend.justification = "right")
 ```
@@ -604,14 +624,28 @@ upw_oa_by_year <- upw_by_year %>%
   filter(is_oa == TRUE) %>%
   inner_join(upw_all) %>%
   mutate(prop = n / all) %>%
-  arrange(year)
+  arrange(year) %>%
+  mutate(year = as.character(year))
+# snpr oa journals
+oa_jn <- oa_df %>%
+  filter(pub_type == "journal-article", is_oa == TRUE, src == "Unpaywall") %>%
+  group_by(is_oa, year) %>%
+  summarise(n_oa = n_distinct(pid))
+jn_all <-  oa_df %>%
+  filter(pub_type == "journal-article") %>%
+  group_by(year) %>%
+  summarise(n = n_distinct(pid))
 
-oa_shares_by_year %>% 
-  select(year, oa_share_npl = oa_share) %>%
-  inner_join(upw_oa_by_year) %>%
-  select(year, `Unpaywall Total` = prop, `NPL subset` = oa_share_npl) %>%
-  pivot_longer(c(`Unpaywall Total`,  `NPL subset`)) %>%
-  ggplot(aes(year, value, group = name, color = name)) +
+oa_prop_df <- inner_join(oa_jn, jn_all, by = "year") %>%
+  mutate(oa_share_npl = n_oa / n) %>%
+  mutate(year = as.character(year)) %>%
+  select(year, oa_share_npl) %>% 
+  inner_join(upw_oa_by_year, by = "year") %>%
+  select(year, `Unpaywall total` = prop, `SNPR subset` = oa_share_npl) %>%
+  pivot_longer(c(`Unpaywall total`,  `SNPR subset`))
+oa_prop_df %>%
+  mutate(year = gsub("^.{2}", "'", year)) %>%
+  ggplot(aes(as.character(year), value, group = name, color = name)) +
   geom_line() +
   geom_point(color = "grey20") +
   scale_y_continuous(labels = scales::label_percent(accuracy = 1L)) +
@@ -621,4 +655,5 @@ oa_shares_by_year %>%
   cowplot::theme_minimal_hgrid() +
   theme(legend.position = "top",
           legend.justification = "right")
+oa_prop_df
 ```
