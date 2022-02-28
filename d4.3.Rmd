@@ -182,9 +182,6 @@ a_plot <- npl_country_perc_df %>%
   coord_flip() +
   labs(
     x = NULL, y = NULL
-   # title = "What is the uptake of hybrid open access among Elsevier journals?",
-  #  subtitle = "Proportion of immediate open access articles published in subscription-based journals\nJan 2015 to July 2019",
-   # caption = "Data source: Elsevier B.V. / Crossref"
   ) +
   theme_minimal() +
   theme(panel.grid.minor = element_blank()) +
@@ -217,11 +214,7 @@ a_plot <- npl_per_cpc_df %>%
   scale_x_discrete(labels = function(x) str_trunc(x, 35, side = "right")) +
   coord_flip() +
   labs(
-    x = NULL, y = NULL
-   # title = "What is the uptake of hybrid open access among Elsevier journals?",
-  #  subtitle = "Proportion of immediate open access articles published in subscription-based journals\nJan 2015 to July 2019",
-   # caption = "Data source: Elsevier B.V. / Crossref"
-  ) +
+    x = NULL, y = NULL) +
   theme_minimal() +
   theme(panel.grid.minor = element_blank()) +
   theme(axis.ticks = element_blank()) +
