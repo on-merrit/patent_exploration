@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Jahn
+    given-names: Najko
+    orcid: https://orcid.org/0000-0001-5105-1463
+  - family-names: Klebel
+    given-names: Thomas
+    orcid: https://orcid.org/0000-0002-7331-4751
+title: "Data source code supplement: Quantifying the influence of Open Access on innovation and patents"
+version: 0.2
+doi: 10.5281/zenodo.6477738
+date-released: 2022-04-22
